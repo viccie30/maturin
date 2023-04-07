@@ -3,6 +3,7 @@
 
 use crate::build_context::hash_file;
 use anyhow::{bail, Context, Result};
+use base64::Engine;
 use bytesize::ByteSize;
 use configparser::ini::Ini;
 use fs_err as fs;
@@ -412,7 +413,8 @@ pub fn upload(registry: &Registry, wheel_path: &Path) -> Result<(), UploadError>
 
     form.add_stream("content", &wheel, Some(wheel_name), None);
     let multipart_data = form.prepare().map_err(|e| e.error)?;
-    let encoded = base64::encode(format!("{}:{}", registry.username, registry.password));
+    let encoded = base64::engine::general_purpose::STANDARD
+        .encode(format!("{}:{}", registry.username, registry.password));
 
     let agent = http_agent()?;
 

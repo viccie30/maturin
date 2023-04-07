@@ -5,6 +5,7 @@ use crate::{
     pyproject_toml::Format, BridgeModel, Metadata21, PyProjectToml, PythonInterpreter, Target,
 };
 use anyhow::{anyhow, bail, Context, Result};
+use base64::Engine;
 use flate2::write::GzEncoder;
 use flate2::Compression;
 use fs_err as fs;
@@ -191,7 +192,11 @@ impl ModuleWriter for PathWriter {
         file.write_all(bytes)
             .context(format!("Failed to write to file at {}", path.display()))?;
 
-        let hash = base64::encode_config(Sha256::digest(bytes), base64::URL_SAFE_NO_PAD);
+        let hash = base64::engine::GeneralPurpose::new(
+            &base64::alphabet::URL_SAFE,
+            base64::engine::general_purpose::NO_PAD,
+        )
+        .encode(Sha256::digest(bytes));
         self.record.push((
             target.as_ref().to_str().unwrap().to_owned(),
             hash,
@@ -248,7 +253,11 @@ impl ModuleWriter for WheelWriter {
         self.zip.start_file(target.clone(), options)?;
         self.zip.write_all(bytes)?;
 
-        let hash = base64::encode_config(Sha256::digest(bytes), base64::URL_SAFE_NO_PAD);
+        let hash = base64::engine::GeneralPurpose::new(
+            &base64::alphabet::URL_SAFE,
+            base64::engine::general_purpose::NO_PAD,
+        )
+        .encode(Sha256::digest(bytes));
         self.record.push((target, hash, bytes.len()));
 
         Ok(())
